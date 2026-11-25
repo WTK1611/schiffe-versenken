@@ -1,0 +1,252 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Schiffe versenken</title>
+  <meta name="description" content="Schiffe versenken in 3D oder auf Papier – gegen Freunde, gegen Bots, am Fernseher mit Handys als Controller.">
+  <meta name="theme-color" content="#0b0716">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><defs><linearGradient id=%22g%22 x1=%220%22 y1=%220%22 x2=%221%22 y2=%221%22><stop offset=%220%22 stop-color=%22%23ff3d9a%22/><stop offset=%22.5%22 stop-color=%22%23ffd93d%22/><stop offset=%221%22 stop-color=%22%233dd8ff%22/></linearGradient></defs><rect width=%22100%22 height=%22100%22 rx=%2228%22 fill=%22url(%23g)%22/><text x=%2250%22 y=%2270%22 font-size=%2260%22 text-anchor=%22middle%22>⚓</text></svg>">
+  <link rel="preload" href="/fonts/nunito-latin.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="/style.css">
+  <script type="importmap">
+    { "imports": { "three": "/vendor/three/build/three.module.js", "three/addons/": "/vendor/three/examples/jsm/" } }
+  </script>
+  <script src="/shared/game.js"></script>
+</head>
+<body>
+  <div class="hintergrund" aria-hidden="true"><div class="wolke w1"></div><div class="wolke w2"></div><div class="wolke w3"></div></div>
+  <canvas id="scene" aria-label="3D-Spielfeld"></canvas>
+  <div id="paper" class="paper" hidden></div>
+
+  <div id="hud">
+    <header class="topbar">
+      <button class="marke" id="brand" type="button" aria-label="Schiffe versenken – zur Startseite">
+        <span class="logo">⚓</span>
+        <span class="wortmarke">Schiffe<span class="verlaufstext">versenken</span></span>
+      </button>
+      <div class="top-actions">
+        <button id="room-chip" class="chip" type="button" hidden title="Einladung teilen">
+          <span class="leise">Raum</span> <b id="room-code"></b>
+        </button>
+        <button id="btn-view" class="icon-btn" type="button" hidden title="Ansicht wechseln" aria-label="Ansicht wechseln">👀</button>
+        <button id="btn-settings" class="icon-btn" type="button" title="Einstellungen" aria-label="Einstellungen" aria-expanded="false">⚙️</button>
+        <button id="btn-leave" class="icon-btn" type="button" hidden title="Spiel verlassen" aria-label="Spiel verlassen">✕</button>
+      </div>
+      <div id="settings" class="settings box" hidden>
+        <div class="set-row">
+          <span>Darstellung</span>
+          <div class="segmented" id="set-theme" role="radiogroup" aria-label="Darstellung">
+            <button type="button" role="radio" data-v="3d">🌊 3D</button>
+            <button type="button" role="radio" data-v="paper">✏️ Papier</button>
+          </div>
+        </div>
+        <div class="set-row" id="row-quality">
+          <span>3D-Qualität</span>
+          <div class="segmented" id="set-quality" role="radiogroup" aria-label="3D-Qualität">
+            <button type="button" role="radio" data-v="normal">Normal</button>
+            <button type="button" role="radio" data-v="erweitert">Erweitert</button>
+          </div>
+        </div>
+        <div class="set-row">
+          <span>Ton</span>
+          <div class="segmented" id="set-sound" role="radiogroup" aria-label="Ton">
+            <button type="button" role="radio" data-v="on">🔊 An</button>
+            <button type="button" role="radio" data-v="off">🔇 Aus</button>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Start -->
+    <section id="screen-home" class="screen scroll" hidden>
+      <div class="home">
+        <h1 class="held-titel">Wer versenkt<br><span class="verlaufstext">zuerst?</span></h1>
+
+        <label class="feld name-feld">
+          <span>Dein Name</span>
+          <input id="in-name" maxlength="16" autocomplete="nickname" placeholder="Kapitänin Blaubart">
+        </label>
+
+        <div class="start-wahl">
+          <form id="form-join" class="start-karte karte-join" autocomplete="off">
+            <div class="karte-titel"><b>Beitreten</b><span>mit Code</span></div>
+            <p>Code eingeben oder QR-Code scannen</p>
+            <div class="code-reihe">
+              <input id="in-code" class="code-feld" maxlength="4" inputmode="numeric" pattern="[0-9]*" placeholder="1234" aria-label="Raumcode (4 Ziffern)">
+              <button type="submit" aria-label="Beitreten"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+            </div>
+          </form>
+          <button id="mode-tv" class="start-karte karte-tv" type="button">
+            <div class="karte-titel"><b>Party</b><span>am Fernseher</span></div>
+            <p>Auf TV oder Laptop öffnen – Handys sind die Controller</p>
+            <span class="karte-badge">Für den Gastgeber</span>
+            <span class="karte-bild" aria-hidden="true">📺</span>
+          </button>
+        </div>
+
+        <div class="modes">
+          <button class="mode box" id="mode-pvp" type="button">
+            <span class="mode-icon">📱</span>
+            <span class="mode-title">Gegen Freund</span>
+            <span class="mode-sub">Jeder am eigenen Handy oder PC</span>
+          </button>
+          <button class="mode box" id="mode-bot" type="button">
+            <span class="mode-icon">🤖</span>
+            <span class="mode-title">Gegen Bot</span>
+            <span class="mode-sub">Sofort losspielen</span>
+          </button>
+          <button class="mode box" id="mode-demo" type="button">
+            <span class="mode-icon">🍿</span>
+            <span class="mode-title">Demo</span>
+            <span class="mode-sub">Zwei Bots, du schaust zu</span>
+          </button>
+        </div>
+
+        <div class="level-row">
+          <span>Bot-Stärke</span>
+          <div class="segmented" id="level" role="radiogroup" aria-label="Bot-Stärke">
+            <button type="button" role="radio" data-level="leicht">🪖 Leicht</button>
+            <button type="button" role="radio" data-level="mittel">⚓ Mittel</button>
+            <button type="button" role="radio" data-level="schwer">🎖️ Schwer</button>
+          </div>
+        </div>
+
+        <section class="box best-box" id="home-best">
+          <h2>🏆 Bestenliste</h2>
+          <ol class="best-list" id="best-home"></ol>
+          <p class="leise best-empty" id="best-home-empty" hidden>Noch keine Spiele eingetragen – sei die oder der Erste!</p>
+        </section>
+
+        <a class="github-link" href="https://github.com/WTK1611/schiffe-versenken" target="_blank" rel="noopener" aria-label="Quellcode auf GitHub" title="Quellcode auf GitHub">
+          <svg viewBox="0 0 16 16" aria-hidden="true"><path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+        </a>
+
+        <details class="rules box">
+          <summary>Spielregeln</summary>
+          <ul>
+            <li>Jede Flotte: Flugzeugträger (5), Schlachtschiff (4), Kreuzer (3), U-Boot (3), Zerstörer (2).</li>
+            <li>Schiffe dürfen sich nicht berühren – auch nicht diagonal.</li>
+            <li>Triffst du, darfst du gleich nochmal schießen.</li>
+            <li>Pro Zug hast du 30 Sekunden, sonst feuert der Autopilot.</li>
+            <li>Wer zuerst alle gegnerischen Schiffe versenkt, gewinnt!</li>
+          </ul>
+        </details>
+      </div>
+    </section>
+
+    <!-- Warteraum (gegen Freund) -->
+    <section id="screen-lobby" class="screen center" hidden>
+      <div class="box lobby">
+        <h2>Warte auf deinen Gegner …</h2>
+        <p class="leise">Lass deinen Freund den QR-Code scannen oder den Code eingeben.</p>
+        <div class="qr-karte"><div class="qr-bild" data-qr></div><span>Jetzt mitspielen</span><b class="qr-code-text" data-code></b></div>
+        <div class="lobby-actions">
+          <button id="btn-copy" class="knopf" type="button">🔗 Einladung teilen</button>
+          <button id="btn-cancel" class="knopf zweit" type="button">Abbrechen</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- TV: Warteraum am Fernseher -->
+    <section id="screen-tv" class="screen center" hidden>
+      <div class="tv-raster">
+        <div class="box tv-box">
+          <h2>Wer spielt mit?</h2>
+          <div id="tv-slots" class="tv-slots"></div>
+          <div class="level-row tv-level">
+            <span>Falls nur ein Handy mitspielt – Bot-Stärke:</span>
+            <div class="segmented" id="tv-level" role="radiogroup" aria-label="Bot-Stärke">
+              <button type="button" role="radio" data-level="leicht">🪖 Leicht</button>
+              <button type="button" role="radio" data-level="mittel">⚓ Mittel</button>
+              <button type="button" role="radio" data-level="schwer">🎖️ Schwer</button>
+            </div>
+          </div>
+          <div class="tv-actions">
+            <button id="btn-tv-back" class="knopf zweit" type="button">‹ Zurück</button>
+            <button id="btn-tv-start" class="knopf gross" type="button" disabled>Spiel starten ✨</button>
+          </div>
+        </div>
+        <div class="tv-rechts">
+          <div class="qr-karte gross-qr"><div class="qr-bild" data-qr></div><span>Jetzt mitspielen</span><b class="qr-code-text" data-code></b><small class="qr-url" data-url></small></div>
+          <div class="box tv-best"><h3>🏆 Bestenliste</h3><ol class="best-list" id="best-tv"></ol><p class="leise best-empty" id="best-tv-empty" hidden>Noch leer</p></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Handy als Controller: warten auf den Fernseher -->
+    <section id="screen-pad" class="screen center" hidden>
+      <div class="box pad-wait">
+        <div class="pad-avatar" id="pad-avatar">⚓</div>
+        <h2>Du bist dabei!</h2>
+        <p class="leise">Schau auf den Fernseher 📺 – dort wird das Spiel gestartet. Dein Handy ist gleich dein Controller.</p>
+        <button id="btn-pad-leave" class="knopf zweit" type="button">Verlassen</button>
+      </div>
+    </section>
+
+    <!-- Schiffe platzieren -->
+    <section id="screen-place" class="screen" hidden>
+      <div class="banner box">
+        <h2>Platziere deine Flotte</h2>
+        <p id="place-sub">Wähle ein Schiff und klicke aufs Feld. <kbd>R</kbd> oder Rechtsklick dreht.</p>
+      </div>
+      <div class="dock box">
+        <div id="ship-chips" class="ship-chips"></div>
+        <div class="dock-actions">
+          <button id="btn-rotate" class="knopf zweit" type="button">↻ Drehen</button>
+          <button id="btn-random" class="knopf zweit" type="button">🎲 Zufällig</button>
+          <button id="btn-ready" class="knopf" type="button">Bereit!</button>
+        </div>
+        <p id="opp-status" class="opp-status"></p>
+      </div>
+    </section>
+
+    <!-- Gefecht -->
+    <section id="screen-battle" class="screen" hidden>
+      <div class="turn-banner box" id="turn-banner">
+        <div class="timer" id="timer">
+          <svg viewBox="0 0 44 44" aria-hidden="true"><circle class="track" cx="22" cy="22" r="19"/><circle class="bar" id="timer-bar" cx="22" cy="22" r="19"/></svg>
+          <span id="timer-num"></span>
+        </div>
+        <div class="turn-text">
+          <div id="turn-title"></div>
+          <div id="turn-sub"></div>
+        </div>
+      </div>
+      <aside id="fleet-cards" class="fleet-cards"></aside>
+      <div id="qr-klein" class="qr-karte qr-klein" hidden><div class="qr-bild" data-qr></div><span>Jetzt mitspielen</span><b class="qr-code-text" data-code></b></div>
+      <ol id="log" class="log" aria-live="polite"></ol>
+      <button id="btn-fire" class="knopf gross fire-btn" type="button" hidden>🔥 Feuer!</button>
+      <div class="emote-wrap">
+        <div class="emotes box" id="emotes" hidden></div>
+        <button id="btn-emote" class="icon-btn emote-toggle" type="button" aria-label="Emote senden" title="Emote senden">😀</button>
+      </div>
+    </section>
+
+    <!-- Ergebnis -->
+    <section id="screen-over" class="screen center" hidden>
+      <div class="box result" id="result-card">
+        <div class="trophy" id="over-icon">🏆</div>
+        <h2 id="over-title"></h2>
+        <p id="over-sub" class="leise"></p>
+        <div id="scoreboard" class="scoreboard"></div>
+        <p id="over-points" class="over-points" hidden></p>
+        <div class="best-mini" id="best-over-box" hidden><h3>🏆 Bestenliste</h3><ol class="best-list" id="best-over"></ol></div>
+        <div class="result-actions">
+          <button id="btn-again" class="knopf gross" type="button">Nochmal!</button>
+          <button id="btn-look" class="knopf zweit" type="button">Felder ansehen</button>
+          <button id="btn-home" class="knopf zweit" type="button">Hauptmenü</button>
+        </div>
+      </div>
+      <button id="btn-result" class="knopf result-pill" type="button" hidden>🏆 Ergebnis</button>
+    </section>
+
+    <div id="countdown" class="countdown" hidden aria-live="assertive"></div>
+    <div id="pop" class="pop" aria-live="assertive"></div>
+    <div id="toasts" class="toasts"></div>
+    <div id="conn" class="conn" hidden>Verbindung wird wiederhergestellt …</div>
+  </div>
+
+  <script type="module" src="/js/main.js"></script>
+</body>
+</html>

@@ -228,6 +228,7 @@ input:focus { border-color: var(--cyan); box-shadow: 0 0 0 4px rgba(61, 216, 255
 .lobby, .pad-wait { width: min(440px, 100%); padding: 26px 22px; text-align: center; display: grid; gap: 14px; animation: einblenden .6s var(--feder) both; }
 .lobby h2, .pad-wait h2, .tv-box h2 { margin: 0; font-size: 1.6rem; font-weight: 900; }
 .lobby p, .pad-wait p { margin: 0; }
+.setup .feld { text-align: left; }
 .lobby-actions { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
 .pad-avatar { width: 92px; height: 92px; margin: 0 auto; border-radius: 28px; display: grid; place-items: center; font-size: 2.8rem; background: var(--pc, var(--verlauf)); color: var(--dunkel); font-weight: 900; box-shadow: 0 16px 40px -14px var(--pc, var(--pink)); animation: wippen 3s ease-in-out infinite; }
 

@@ -100,7 +100,7 @@ So spielt ihr zu zweit auf dem großen Bildschirm, jeder mit seinem Handy als Co
 
 1. Server im Heimnetz starten (siehe [Schnellstart](#schnellstart)) – oder eine öffentlich erreichbare Installation nutzen.
 2. Am Fernseher (Smart-TV-Browser, Laptop am HDMI, …) die Adresse öffnen und **„Party am Fernseher“** wählen.
-3. Beide Handys scannen den **QR-Code** – fertig. Alternativ auf der Startseite den **4-stelligen Code** eintippen.
+3. Beide Handys scannen den **QR-Code**, geben ihren Namen ein – fertig. Alternativ auf der Startseite den **4-stelligen Code** eintippen.
 4. Am Fernseher **Spiel starten**. Ist nur ein Handy da, spielt ein Bot in der eingestellten Stärke mit.
 
 ![Fernseher: Wer spielt mit?](docs/bilder/tv-warteraum.jpg)

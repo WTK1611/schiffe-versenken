@@ -45,6 +45,7 @@ let resultCollapsed = false;
 let interactiveKey = '';
 let countdownShown = null;
 let tvIdleSince = Date.now();
+let setup = null;        // Spielsetup vor dem Raum: { mode: 'pvp' | 'bot' | 'join', code? }
 let level = store.get('sv-level', 'mittel');
 let theme = store.get('sv-theme', '3d');
 let quality = store.get('sv-quality', touchUI ? 'normal' : 'erweitert');
@@ -229,6 +230,7 @@ function onState(m) {
   const prev = S;
   if (prev && prev.code === m.code && m.seq < prev.seq) return; // veralteter Stand
   S = m;
+  setup = null;
   session.set({ code: m.code, token: m.token });
   const url = new URL(location.href);
   if (url.searchParams.get('room') !== m.code || url.searchParams.has('k')) {
@@ -501,7 +503,7 @@ function fire(t) {
 // ------------------------------------------------------------------ Rendering
 
 function screenName() {
-  if (!S) return 'home';
+  if (!S) return setup ? 'setup' : 'home';
   if (S.phase === 'lobby') {
     if (S.mode === 'tv') return S.spectator ? 'tv' : 'pad';
     return 'lobby';
@@ -513,7 +515,7 @@ function screenName() {
 
 function render() {
   const screen = screenName();
-  for (const id of ['home', 'lobby', 'tv', 'pad', 'place', 'battle', 'over']) $(`#screen-${id}`).hidden = id !== screen;
+  for (const id of ['home', 'setup', 'lobby', 'tv', 'pad', 'place', 'battle', 'over']) $(`#screen-${id}`).hidden = id !== screen;
   if (screen !== 'over') document.body.classList.remove('result-open');
   if (screen === 'over') $('#screen-battle').hidden = false;
 
@@ -527,6 +529,7 @@ function render() {
   if (R) R.setMode(!S || S.phase === 'lobby' ? 'menu' : 'game');
   renderBoards();
   if (screen === 'home') renderHome();
+  if (screen === 'setup') renderSetup();
   if (screen === 'lobby') renderLobby();
   if (screen === 'tv') renderTv();
   if (screen === 'pad') renderPad();
@@ -603,11 +606,34 @@ async function renderBestLists() {
 
 function renderHome() {
   renderBestLists();
-  const input = $('#in-name');
-  if (!input.value) input.value = store.get('sv-name', '');
   for (const b of $$('#level button, #tv-level button')) b.setAttribute('aria-checked', String(b.dataset.level === level));
   const code = params.get('room');
   if (code && !$('#in-code').value) $('#in-code').value = code.replace(/\D/g, '').slice(0, 4);
+}
+
+const SETUP = {
+  pvp: { icon: '📱', title: 'Gegen Freund', sub: 'Du eröffnest den Raum – dein Freund tritt per Code oder QR-Code bei.', go: 'Raum eröffnen' },
+  bot: { icon: '🤖', title: 'Gegen Bot', sub: 'Wähle, wie hart der Gegner zurückschießt.', go: 'Los geht’s ✨' },
+  join: { icon: '⚓', title: 'Raum', sub: 'Wie sollen dich die anderen nennen?', go: 'Mitspielen' },
+};
+
+function renderSetup() {
+  const c = SETUP[setup.mode];
+  $('#setup-icon').textContent = c.icon;
+  $('#setup-title').innerHTML = setup.mode === 'join' ? `Raum <span class="verlaufstext">${esc(setup.code)}</span>` : esc(c.title);
+  $('#setup-sub').textContent = c.sub;
+  $('#btn-setup-go').textContent = c.go;
+  $('#setup-level-row').hidden = setup.mode !== 'bot';
+  for (const b of $$('#setup-level button')) b.setAttribute('aria-checked', String(b.dataset.level === level));
+}
+
+/** Spielsetup öffnen: Name (vorbelegt mit dem zuletzt benutzten), bei Bots auch die Stärke. */
+function openSetup(mode, code) {
+  setup = { mode, code };
+  const input = $('#in-name');
+  if (!input.value) input.value = store.get('sv-name', '');
+  render();
+  if (!touchUI || !input.value) input.focus();
 }
 
 let qrFor = null;
@@ -931,7 +957,15 @@ function joinRoom() {
     $('#in-code').focus();
     return;
   }
-  send({ t: 'join', code, k: code === params.get('room') ? invite : undefined, name: playerName() });
+  openSetup('join', code);
+}
+
+function startSetup() {
+  if (!setup) return;
+  const name = playerName();
+  if (setup.mode === 'join') send({ t: 'join', code: setup.code, k: setup.code === params.get('room') ? invite : undefined, name });
+  else if (setup.mode === 'bot') send({ t: 'create', mode: 'bot', name, level });
+  else send({ t: 'create', mode: 'pvp', name });
 }
 
 function leave() {
@@ -948,8 +982,8 @@ document.addEventListener('pointerdown', () => {
   sfx.setAmbience(true);
 }, { passive: true });
 
-$('#mode-pvp').onclick = () => send({ t: 'create', mode: 'pvp', name: playerName() });
-$('#mode-bot').onclick = () => send({ t: 'create', mode: 'bot', name: playerName(), level });
+$('#mode-pvp').onclick = () => openSetup('pvp');
+$('#mode-bot').onclick = () => openSetup('bot');
 $('#mode-demo').onclick = () => send({ t: 'create', mode: 'demo', level, level2: level === 'schwer' ? 'mittel' : 'schwer' });
 $('#mode-tv').onclick = () => send({ t: 'create', mode: 'tv' });
 $('#form-join').onsubmit = (e) => {
@@ -958,9 +992,14 @@ $('#form-join').onsubmit = (e) => {
 };
 $('#in-code').oninput = (e) => {
   e.target.value = e.target.value.replace(/\D/g, '').slice(0, 4);
-  if (e.target.value.length === 4 && playerName()) joinRoom(); // 4 Ziffern + Name → direkt los
+  if (e.target.value.length === 4) joinRoom(); // 4 Ziffern → weiter zum Namen
 };
-for (const sel of ['#level', '#tv-level']) {
+$('#form-setup').onsubmit = (e) => {
+  e.preventDefault();
+  startSetup();
+};
+$('#btn-setup-back').onclick = () => { setup = null; render(); };
+for (const sel of ['#level', '#tv-level', '#setup-level']) {
   $(sel).onclick = (e) => {
     const b = e.target.closest('button');
     if (!b) return;
@@ -1136,13 +1175,10 @@ setInterval(() => {
 (async () => {
   await applyTheme();
   connect();
-  // Per QR-Code gekommen (Raum + Schlüssel): mit gespeichertem Namen direkt beitreten
+  // Per QR-Code gekommen (Raum + Schlüssel): gleich weiter zum Namen (wie HitYear)
   if (params.get('room') && invite && !session.get()) {
-    if (store.get('sv-name', '')) setTimeout(joinRoom, 300);
-    else {
-      $('#in-name').focus();
-      toast('Fast geschafft: Namen eingeben und ➜ tippen.');
-    }
+    $('#in-code').value = params.get('room').replace(/\D/g, '').slice(0, 4);
+    joinRoom();
   }
 })();
 

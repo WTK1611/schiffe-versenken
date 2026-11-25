@@ -63,11 +63,6 @@
       <div class="home">
         <h1 class="held-titel">Wer versenkt<br><span class="verlaufstext">zuerst?</span></h1>
 
-        <label class="feld name-feld">
-          <span>Dein Name</span>
-          <input id="in-name" maxlength="16" autocomplete="nickname" placeholder="Kapitänin Blaubart">
-        </label>
-
         <div class="start-wahl">
           <form id="form-join" class="start-karte karte-join" autocomplete="off">
             <div class="karte-titel"><b>Beitreten</b><span>mit Code</span></div>
@@ -133,6 +128,31 @@
           </ul>
         </details>
       </div>
+    </section>
+
+    <!-- Spielsetup: Name (und Bot-Stärke) vor „Gegen Freund“, „Gegen Bot“ und dem Beitreten (wie HitYear) -->
+    <section id="screen-setup" class="screen center" hidden>
+      <form id="form-setup" class="box lobby setup" autocomplete="off">
+        <div class="pad-avatar" id="setup-icon" aria-hidden="true">⚓</div>
+        <h2 id="setup-title"></h2>
+        <p class="leise" id="setup-sub"></p>
+        <label class="feld name-feld">
+          <span>Dein Name</span>
+          <input id="in-name" maxlength="16" autocomplete="nickname" placeholder="Kapitänin Blaubart">
+        </label>
+        <div class="level-row" id="setup-level-row">
+          <span>Bot-Stärke</span>
+          <div class="segmented" id="setup-level" role="radiogroup" aria-label="Bot-Stärke">
+            <button type="button" role="radio" data-level="leicht">🪖 Leicht</button>
+            <button type="button" role="radio" data-level="mittel">⚓ Mittel</button>
+            <button type="button" role="radio" data-level="schwer">🎖️ Schwer</button>
+          </div>
+        </div>
+        <div class="lobby-actions">
+          <button id="btn-setup-back" class="knopf zweit" type="button">‹ Zurück</button>
+          <button id="btn-setup-go" class="knopf gross" type="submit"></button>
+        </div>
+      </form>
     </section>
 
     <!-- Warteraum (gegen Freund) -->

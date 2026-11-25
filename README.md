@@ -172,7 +172,14 @@ Bots, Demos und durch Verlassen abgebrochene Spiele zählen nicht.
 
 ## Schnellstart
 
-Voraussetzung: [Node.js](https://nodejs.org) ab Version 18.
+**Am einfachsten (macOS/Linux):** Diese eine Zeile ins Terminal kopieren – sie holt das Spiel, installiert alles
+(fehlt Node.js, per Homebrew), startet den Server und öffnet den Browser. Nochmal ausführen = aktualisieren.
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/WTK1611/schiffe-versenken/main/start.sh | bash
+```
+
+**Von Hand:** Voraussetzung ist [Node.js](https://nodejs.org) ab Version 18.
 
 ```bash
 git clone https://github.com/WTK1611/schiffe-versenken.git
